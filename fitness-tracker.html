@@ -1,0 +1,467 @@
+我会为你重新编写健身训练计划的完整代码，确保以下功能正确实现：
+✅ 设定开始日期和起始周几
+✅ 自动计算当天训练计划
+✅ 详细训练计划展示，可查看每日训练内容
+✅ 完成训练打卡功能，并在完成后变灰
+✅ 周统计功能，显示完成情况并支持重置
+
+完成后，我会通知你。请稍等！
+
+下面是完整的 HTML 代码，将其保存为 `.html` 文件后用浏览器打开即可：
+
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>健身训练计划</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f7f7f7;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .settings {
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .settings label {
+      display: inline-block;
+      margin: 5px 10px;
+      font-size: 14px;
+      color: #555;
+    }
+    .settings input, .settings select {
+      font-size: 14px;
+      padding: 4px;
+      margin-left: 5px;
+    }
+    .settings button {
+      font-size: 14px;
+      padding: 5px 10px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    #weekInfo {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 16px;
+      color: #333;
+    }
+    #weekInfo button {
+      font-size: 12px;
+      padding: 3px 6px;
+      margin-left: 10px;
+      cursor: pointer;
+    }
+    #weekList {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+    #weekList li {
+      border-bottom: 1px solid #eee;
+      padding: 10px 0;
+    }
+    #weekList li.today {
+      background: #e8f8ff;
+    }
+    .day-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .day-label {
+      font-weight: bold;
+      font-size: 15px;
+      color: #333;
+      flex: 1;
+    }
+    .day-label .date {
+      font-weight: normal;
+      color: #888;
+      font-size: 14px;
+      margin-left: 5px;
+    }
+    .buttons {
+      flex-shrink: 0;
+    }
+    .buttons button {
+      font-size: 12px;
+      padding: 3px 6px;
+      margin-left: 5px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      color: #fff;
+    }
+    .details-btn {
+      background: #007bff;
+    }
+    .complete-btn {
+      background: #28a745;
+    }
+    .complete-btn:disabled {
+      background: #aaa;
+      cursor: default;
+    }
+    .exercises {
+      display: none;
+      margin-top: 5px;
+      padding-left: 15px;
+    }
+    .exercises li {
+      font-size: 14px;
+      color: #555;
+      margin: 3px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>健身训练计划</h1>
+    <div class="settings">
+      <label>开始日期: <input type="date" id="startDateInput" /></label>
+      <label>起始周几: 
+        <select id="startDayInput">
+          <option value="0">周一</option>
+          <option value="1">周二</option>
+          <option value="2">周三</option>
+          <option value="3">周四</option>
+          <option value="4">周五</option>
+          <option value="5">周六</option>
+          <option value="6">周日</option>
+        </select>
+      </label>
+      <button id="setStartBtn">开始计划</button>
+    </div>
+    <div id="planDisplay" style="display:none;">
+      <div id="weekInfo"></div>
+      <ul id="weekList"></ul>
+    </div>
+  </div>
+  <script>
+    // ======= 数据: 训练计划 (可以根据需要修改/扩展) =======
+    const trainingPlan = [
+      { name: "胸部/肱三头肌", exercises: [
+          "杠铃卧推 - 4组 x 10次",
+          "哑铃飞鸟 - 3组 x 12次",
+          "俯卧撑 - 3组 x 15次",
+          "绳索下拉 (肱三头) - 3组 x 12次"
+        ] },
+      { name: "背部/肱二头肌", exercises: [
+          "引体向上 - 3组 x 尽量多",
+          "杠铃划船 - 4组 x 8次",
+          "高位下拉 - 3组 x 10次",
+          "哑铃弯举 - 3组 x 12次"
+        ] },
+      { name: "腿部", exercises: [
+          "深蹲 - 4组 x 8次",
+          "保加利亚分腿蹲 - 3组 x 10次 (每腿)",
+          "硬拉 - 3组 x 8次",
+          "腿弯举 - 3组 x 12次"
+        ] },
+      { name: "肩部", exercises: [
+          "哑铃推举 - 4组 x 10次",
+          "侧平举 - 3组 x 12次",
+          "前平举 - 3组 x 10次",
+          "俯身反向飞鸟 - 3组 x 12次"
+        ] },
+      { name: "核心", exercises: [
+          "卷腹 - 3组 x 20次",
+          "平板支撑 - 3组 x 60秒",
+          "俄罗斯转体 - 3组 x 15次",
+          "臀桥 - 3组 x 15次"
+        ] },
+      { name: "有氧", exercises: [
+          "慢跑 - 30分钟",
+          "跳绳 - 5组 x 2分钟",
+          "动感单车 - 20分钟"
+        ] },
+      { name: "休息", exercises: [
+          "休息日：恢复放松"
+        ] }
+    ];
+    // 计算每周需要训练的天数（除休息日外）
+    const totalWorkoutsPerWeek = trainingPlan.filter(day => day.name !== "休息").length;
+
+    // 本地存储键
+    const STORAGE_START_DATE = "trainingStartDate";
+    const STORAGE_START_DAY = "trainingStartDay";
+    const STORAGE_COMPLETIONS = "trainingCompletions";
+
+    // 保存和读取本地存储的完成情况（存储为 JSON）
+    function saveCompletions(completions) {
+      localStorage.setItem(STORAGE_COMPLETIONS, JSON.stringify(completions));
+    }
+    function loadCompletions() {
+      let data = localStorage.getItem(STORAGE_COMPLETIONS);
+      if (data) {
+        try {
+          return JSON.parse(data);
+        } catch (e) {
+          return {};
+        }
+      }
+      return {};
+    }
+
+    // 工具函数：格式化日期为 YYYY-MM-DD
+    function formatDate(date) {
+      let year = date.getFullYear();
+      let month = (date.getMonth() + 1).toString().padStart(2, '0');
+      let day = date.getDate().toString().padStart(2, '0');
+      return year + '-' + month + '-' + day;
+    }
+
+    // 显示当前周的训练计划和完成情况
+    function renderWeek() {
+      const startDateStr = localStorage.getItem(STORAGE_START_DATE);
+      let startDayIndex = parseInt(localStorage.getItem(STORAGE_START_DAY));
+      if (!startDateStr || isNaN(startDayIndex)) return;
+      const startDate = new Date(startDateStr);
+      // 今天日期
+      const today = new Date();
+      const todayStr = formatDate(today);
+      // 计算今天是从开始日期算起第几天 (diffDays)
+      const diffTime = today.getTime() - startDate.getTime();
+      let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) diffDays = 0; // 如果今天在开始日期之前
+
+      // 计算当前周是第几周（从0开始计数）
+      const weekIndex = Math.floor(diffDays / 7);
+      const weekStartDate = new Date(startDate.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
+
+      // 清空旧内容
+      const weekList = document.getElementById('weekList');
+      weekList.innerHTML = '';
+      // 加载完成情况对象
+      let completions = loadCompletions();
+      let completedCount = 0;
+
+      // 生成当前训练周的7天列表
+      for (let i = 0; i < 7; i++) {
+        let thisDayIndexGlobal = weekIndex * 7 + i;
+        let thisDate = new Date(weekStartDate.getTime() + i * 24 * 60 * 60 * 1000);
+        let dateStr = formatDate(thisDate);
+        // 计算对应的训练计划索引
+        let planIndex = (startDayIndex + thisDayIndexGlobal) % trainingPlan.length;
+        let planDay = trainingPlan[planIndex];
+
+        // 创建列表项元素
+        let li = document.createElement('li');
+        li.classList.add('day');
+        // 如果是今天，添加标记
+        if (dateStr === todayStr) {
+          li.classList.add('today');
+        }
+
+        // 构建显示的日期标签（星期和日期）
+        let dayNames = ['周日','周一','周二','周三','周四','周五','周六'];
+        let dayNameCn = dayNames[thisDate.getDay()];
+        let dateLabel = dayNameCn + ' ' + (thisDate.getMonth() + 1) + '/' + thisDate.getDate();
+
+        // 创建日标签和内容
+        let dayHeaderDiv = document.createElement('div');
+        dayHeaderDiv.classList.add('day-header');
+
+        let labelSpan = document.createElement('span');
+        labelSpan.classList.add('day-label');
+        labelSpan.innerHTML = dateLabel + " - " + planDay.name;
+        // 如果是今天，加上(今天)标注
+        if (dateStr === todayStr) {
+          labelSpan.innerHTML += " (今天)";
+        }
+
+        let buttonsDiv = document.createElement('div');
+        buttonsDiv.classList.add('buttons');
+
+        // 详情按钮
+        let detailBtn = document.createElement('button');
+        detailBtn.textContent = "详情";
+        detailBtn.classList.add('details-btn');
+
+        // 完成按钮 (如果是休息日则不创建)
+        let completeBtn;
+        if (planDay.name !== "休息") {
+          completeBtn = document.createElement('button');
+          completeBtn.textContent = "完成";
+          completeBtn.classList.add('complete-btn');
+          // 检查是否已经完成过
+          if (completions[dateStr]) {
+            completeBtn.disabled = true;
+          }
+          // 点击完成按钮事件
+          completeBtn.addEventListener('click', function() {
+            // 标记完成并保存
+            let comps = loadCompletions();
+            comps[dateStr] = true;
+            saveCompletions(comps);
+            // 禁用按钮并灰化
+            this.disabled = true;
+            // 更新周统计
+            renderWeekInfo();
+          });
+        }
+
+        // 将按钮加入
+        buttonsDiv.appendChild(detailBtn);
+        if (completeBtn) {
+          buttonsDiv.appendChild(completeBtn);
+        }
+
+        // 将标签和按钮容器加入 header
+        dayHeaderDiv.appendChild(labelSpan);
+        dayHeaderDiv.appendChild(buttonsDiv);
+
+        // 创建练习列表元素
+        let exercisesList = document.createElement('ul');
+        exercisesList.classList.add('exercises');
+        planDay.exercises.forEach(function(item) {
+          const liEx = document.createElement('li');
+          liEx.textContent = item;
+          exercisesList.appendChild(liEx);
+        });
+
+        // 设置详情按钮点击事件 (展开/收起练习列表)
+        detailBtn.addEventListener('click', function() {
+          if (exercisesList.style.display !== 'block') {
+            exercisesList.style.display = 'block';
+            this.textContent = '收起';
+          } else {
+            exercisesList.style.display = 'none';
+            this.textContent = '详情';
+          }
+        });
+
+        // 统计完成的训练天数（休息日不算）
+        if (planDay.name !== "休息" && completions[dateStr]) {
+          completedCount++;
+        }
+
+        // 将 header 和练习列表加入列表项
+        li.appendChild(dayHeaderDiv);
+        li.appendChild(exercisesList);
+        // 默认隐藏练习列表 (通过 CSS 控制)
+
+        weekList.appendChild(li);
+      }
+
+      // 更新周统计显示
+      const weekNumber = weekIndex + 1;
+      const weekInfoDiv = document.getElementById('weekInfo');
+      weekInfoDiv.innerHTML = "第 " + weekNumber + " 周完成: " + completedCount + " / " + totalWorkoutsPerWeek + " 天";
+      // 添加重置按钮
+      const resetBtn = document.createElement('button');
+      resetBtn.textContent = "重置";
+      resetBtn.addEventListener('click', function() {
+        if (confirm("确定要重置吗？这将清除所有记录。")) {
+          localStorage.removeItem(STORAGE_START_DATE);
+          localStorage.removeItem(STORAGE_START_DAY);
+          localStorage.removeItem(STORAGE_COMPLETIONS);
+          // 隐藏计划显示，显示设置
+          document.getElementById('planDisplay').style.display = 'none';
+          document.getElementById('weekList').innerHTML = "";
+          weekInfoDiv.innerHTML = "";
+          document.getElementById('startDateInput').value = "";
+          document.getElementById('startDayInput').value = "0";
+        }
+      });
+      weekInfoDiv.appendChild(resetBtn);
+    }
+
+    // 更新周信息部分 (当完成状态改变时)
+    function renderWeekInfo() {
+      // 重新统计当前周完成情况并更新显示
+      // 这里可以直接调用 renderWeek 重新渲染整个周，但为了效率，我们只更新顶部统计数字
+      const startDateStr = localStorage.getItem(STORAGE_START_DATE);
+      let startDayIndex = parseInt(localStorage.getItem(STORAGE_START_DAY));
+      if (!startDateStr || isNaN(startDayIndex)) return;
+      const startDate = new Date(startDateStr);
+      const today = new Date();
+      const diffTime = today.getTime() - startDate.getTime();
+      let diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      if (diffDays < 0) diffDays = 0;
+      const weekIndex = Math.floor(diffDays / 7);
+      const weekStartDate = new Date(startDate.getTime() + weekIndex * 7 * 24 * 60 * 60 * 1000);
+      let completions = loadCompletions();
+      let completedCount = 0;
+      for (let i = 0; i < 7; i++) {
+        let thisDate = new Date(weekStartDate.getTime() + i * 24 * 60 * 60 * 1000);
+        let dateStr = formatDate(thisDate);
+        let planIndex = (startDayIndex + weekIndex * 7 + i) % trainingPlan.length;
+        let planDay = trainingPlan[planIndex];
+        if (planDay.name !== "休息" && completions[dateStr]) {
+          completedCount++;
+        }
+      }
+      const weekNumber = weekIndex + 1;
+      const weekInfoDiv = document.getElementById('weekInfo');
+      weekInfoDiv.innerHTML = "第 " + weekNumber + " 周完成: " + completedCount + " / " + totalWorkoutsPerWeek + " 天";
+      const resetBtn = document.createElement('button');
+      resetBtn.textContent = "重置";
+      resetBtn.addEventListener('click', function() {
+        if (confirm("确定要重置吗？这将清除所有记录。")) {
+          localStorage.removeItem(STORAGE_START_DATE);
+          localStorage.removeItem(STORAGE_START_DAY);
+          localStorage.removeItem(STORAGE_COMPLETIONS);
+          document.getElementById('planDisplay').style.display = 'none';
+          document.getElementById('weekList').innerHTML = "";
+          weekInfoDiv.innerHTML = "";
+          document.getElementById('startDateInput').value = "";
+          document.getElementById('startDayInput').value = "0";
+        }
+      });
+      weekInfoDiv.appendChild(resetBtn);
+    }
+
+    // 页面加载时，初始化设置和计划显示
+    window.addEventListener('DOMContentLoaded', function() {
+      const startDateInput = document.getElementById('startDateInput');
+      const startDayInput = document.getElementById('startDayInput');
+      const planDisplay = document.getElementById('planDisplay');
+
+      // 如果本地存储有开始日期，则填入并直接显示计划
+      const savedDate = localStorage.getItem(STORAGE_START_DATE);
+      const savedDayIndex = localStorage.getItem(STORAGE_START_DAY);
+      if (savedDate && savedDayIndex !== null) {
+        startDateInput.value = savedDate;
+        startDayInput.value = savedDayIndex;
+        planDisplay.style.display = 'block';
+        renderWeek();
+      }
+
+      // 点击“开始计划”按钮
+      document.getElementById('setStartBtn').addEventListener('click', function() {
+        if (!startDateInput.value) {
+          alert("请选择开始日期");
+          return;
+        }
+        // 保存开始日期和起始周几设置
+        localStorage.setItem(STORAGE_START_DATE, startDateInput.value);
+        localStorage.setItem(STORAGE_START_DAY, startDayInput.value);
+        // 重置完成情况以免与新的起点冲突
+        localStorage.removeItem(STORAGE_COMPLETIONS);
+        // 显示训练计划
+        planDisplay.style.display = 'block';
+        // 渲染当周计划
+        renderWeek();
+      });
+    });
+  </script>
+</body>
+</html>
+```
